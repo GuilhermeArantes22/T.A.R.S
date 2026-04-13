@@ -1,0 +1,10 @@
+# Ambiente virtual do Python
+__pycache__/
+.venv/
+venv/
+
+# Arquivos de configuração/segredo
+.env
+
+# Binários e executáveis
+*.exe
