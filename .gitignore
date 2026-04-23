@@ -8,3 +8,9 @@ venv/
 
 # Binários e executáveis
 *.exe
+
+#sobras de áudio
+*.wav
+*.mp3
+
+
