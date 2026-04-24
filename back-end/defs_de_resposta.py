@@ -12,8 +12,23 @@ import elevenlabs
 from elevenlabs.types.voice_settings import VoiceSettings
 from faster_whisper import WhisperModel
 
+
+def _get_env_float(name, default):
+    value = os.getenv(name)
+    if value is None:
+        return default
+
+    try:
+        return float(value)
+    except ValueError:
+        return default
+
 #def para gravar o microfone e salvar o arquivo de áudio
 def gravar_audio(filename="pergunta.wav", threshold=0.0030, silence_duration=1.0):
+    filename = os.getenv("TARS_INPUT_AUDIO_FILE", filename)
+    threshold = _get_env_float("AUDIO_THRESHOLD", threshold)
+    silence_duration = _get_env_float("AUDIO_SILENCE_DURATION", silence_duration)
+
     fs = 44100
     chunk_size = 1024
     audio_data = []
@@ -60,6 +75,11 @@ def gravar_audio(filename="pergunta.wav", threshold=0.0030, silence_duration=1.0
 
 def transcrever_audio(filename="pergunta.wav", model_size_or_path="small", device="cpu", compute_type="int8", language="pt"):
     """Transcreve localmente o áudio usando Whisper via faster-whisper."""
+    filename = os.getenv("TARS_INPUT_AUDIO_FILE", filename)
+    model_size_or_path = os.getenv("WHISPER_MODEL", model_size_or_path)
+    device = os.getenv("WHISPER_DEVICE", device)
+    compute_type = os.getenv("WHISPER_COMPUTE_TYPE", compute_type)
+    language = os.getenv("WHISPER_LANGUAGE", language)
     model = WhisperModel(model_size_or_path, device=device, compute_type=compute_type)
     segments, info = model.transcribe(filename, beam_size=5, vad_filter=True, language=language)
     texto = " ".join(segment.text for segment in segments).strip()
@@ -127,12 +147,21 @@ async def tars_speak(
     output_format="mp3_22050_32",
     model_id="eleven_multilingual_v2",
     stability=0.35,
-    similarity_boost=0.4,
+    similarity_boost=0.45,
     style=0.55,
+    delay_before_playback=0,
 ):
     api_key = os.getenv("ELEVENLABS_API")
     if not api_key:
         raise RuntimeError("ELEVENLABS_API não configurada")
+
+    voice_name = os.getenv("TARS_DEFAULT_VOICE_NAME", voice_name)
+    output_file = os.getenv("TARS_OUTPUT_FILE", output_file)
+    output_format = os.getenv("ELEVENLABS_OUTPUT_FORMAT", output_format)
+    model_id = os.getenv("ELEVENLABS_MODEL_ID", model_id)
+    stability = _get_env_float("ELEVENLABS_STABILITY", stability)
+    similarity_boost = _get_env_float("ELEVENLABS_SIMILARITY_BOOST", similarity_boost)
+    style = _get_env_float("ELEVENLABS_STYLE", style)
 
     texto = str(texto).strip()
     if not texto:
@@ -140,7 +169,7 @@ async def tars_speak(
         return
 
     client = elevenlabs.ElevenLabs(api_key=api_key)
-    voice_id = "6EgjYphdzo2yW69NjS3h"
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "6EgjYphdzo2yW69NjS3h")
 
     voice_settings = VoiceSettings(
         stability=stability,
@@ -159,6 +188,10 @@ async def tars_speak(
 
     elevenlabs.save(audio_stream, output_file)
     print(f"T.A.R.S: Áudio salvo em '{output_file}'")
+
+    if delay_before_playback > 0:
+        print(f"T.A.R.S: Aguardando {delay_before_playback} segundo(s) antes de falar...")
+        await asyncio.sleep(delay_before_playback)
 
     if os.path.exists("ffplay.exe"):
         await asyncio.to_thread(

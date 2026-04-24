@@ -1,16 +1,37 @@
-# Ambiente virtual do Python
+# Python
 __pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
 .venv/
 venv/
+env/
 
-# Arquivos de configuração/segredo
+# Environment and secrets
 .env
+.env.*
+!.env.example
 
-# Binários e executáveis
-*.exe
+# Python tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
-#sobras de áudio
-*.wav
-*.mp3
+# IDE / editor
+.vscode/
+.idea/
 
+# OS files
+.DS_Store
+Thumbs.db
 
+# Local generated audio files
+/pergunta.wav
+/tars_voice.mp3
+
+# Optional local binary kept only for development
+/ffplay.exe
